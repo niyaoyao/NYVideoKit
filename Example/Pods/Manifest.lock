@@ -1,0 +1,16 @@
+PODS:
+  - NYVideoKit (0.1.0)
+
+DEPENDENCIES:
+  - NYVideoKit (from `../`)
+
+EXTERNAL SOURCES:
+  NYVideoKit:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  NYVideoKit: 2781a1ed62a78752c4b81e2b9e03edf972851f29
+
+PODFILE CHECKSUM: ada3106ce9cf116ef5bafb8b50fa3a86a0dde48b
+
+COCOAPODS: 1.6.1

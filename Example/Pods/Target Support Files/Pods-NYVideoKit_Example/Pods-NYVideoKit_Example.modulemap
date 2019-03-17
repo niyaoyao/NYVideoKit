@@ -1,0 +1,6 @@
+framework module Pods_NYVideoKit_Example {
+  umbrella header "Pods-NYVideoKit_Example-umbrella.h"
+
+  export *
+  module * { export * }
+}
