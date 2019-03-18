@@ -14,6 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface NYVideoCapture : NSObject
 
 @property (nonatomic, strong, readonly) AVCaptureVideoPreviewLayer *captureVideoPreviewLayer;
+@property (nonatomic, assign) CGRect previewLayerFrame;
 @property (nonatomic, assign, readonly) BOOL isLightOn;
 
 - (void)captureStillUIImage:(void (^)(UIImage *image, NSError *error))completionHandler;

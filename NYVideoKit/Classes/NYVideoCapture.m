@@ -100,13 +100,13 @@
             theImage = [CIImage imageWithCVPixelBuffer:imageBuffer];
             UIInterfaceOrientation curOrientation = [[UIApplication sharedApplication] statusBarOrientation];
             
-            if (curOrientation == AVCaptureVideoOrientationLandscapeLeft){
+            if (curOrientation == AVCaptureVideoOrientationLandscapeLeft) {
                 theImage = [theImage imageByApplyingOrientation:3];
-            } else if (curOrientation == AVCaptureVideoOrientationLandscapeRight){
+            } else if (curOrientation == AVCaptureVideoOrientationLandscapeRight) {
                 theImage = [theImage imageByApplyingOrientation:1];
-            } else if (curOrientation == AVCaptureVideoOrientationPortrait){
+            } else if (curOrientation == AVCaptureVideoOrientationPortrait) {
                 theImage = [theImage imageByApplyingOrientation:6];
-            } else if (curOrientation == AVCaptureVideoOrientationPortraitUpsideDown){
+            } else if (curOrientation == AVCaptureVideoOrientationPortraitUpsideDown) {
                 theImage = [theImage imageByApplyingOrientation:8];
             }
         }
@@ -195,9 +195,25 @@
 }
 
 + (AVCaptureDevice *)getCameraDevicePosition:(AVCaptureDevicePosition)position {
-    return [AVCaptureDevice defaultDeviceWithDeviceType:AVCaptureDeviceTypeBuiltInWideAngleCamera
-                                              mediaType:AVMediaTypeVideo
-                                               position:position];
+    if (@available(iOS 10.0, *)) {
+        return [AVCaptureDevice defaultDeviceWithDeviceType:AVCaptureDeviceTypeBuiltInWideAngleCamera
+                                                  mediaType:AVMediaTypeVideo
+                                                   position:position];
+    } else {
+        // Fallback on earlier versions
+        NSArray <AVCaptureDevice *> *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+        for (AVCaptureDevice *device in devices) {
+            if ([device position] == position) {
+                return device;
+            }
+        }
+        return nil;
+    }
+}
+
+- (void)setPreviewLayerFrame:(CGRect)previewLayerFrame {
+    _previewLayerFrame = previewLayerFrame;
+    self.captureVideoPreviewLayer.bounds = _previewLayerFrame;
 }
 
 - (AVCaptureSession *)captureSession {
