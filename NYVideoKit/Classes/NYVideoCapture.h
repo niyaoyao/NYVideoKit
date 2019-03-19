@@ -9,6 +9,12 @@
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
 
+@protocol NYVideoCaptureOutputSampleBufferDelegate <NSObject>
+@optional
+
+- (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection isAudio:(BOOL)isAudio;
+
+@end
 NS_ASSUME_NONNULL_BEGIN
 
 @interface NYVideoCapture : NSObject
@@ -16,6 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong, readonly) AVCaptureVideoPreviewLayer *captureVideoPreviewLayer;
 @property (nonatomic, assign) CGRect previewLayerFrame;
 @property (nonatomic, assign, readonly) BOOL isLightOn;
+@property (nonatomic, weak) id<NYVideoCaptureOutputSampleBufferDelegate> outputSampleBufferDelegate;
 
 - (void)captureStillUIImage:(void (^)(UIImage *image, NSError *error))completionHandler;
 - (void)start;

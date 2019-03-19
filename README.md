@@ -37,7 +37,11 @@ Add key-value elements below in **Info.plist** file to solve the crash.
 
 ```
 <key>NSCameraUsageDescription</key>
-<string>Please allow App to use Camera </string>
+<string>Please allow App to use Camera.</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>Please allow App to use Microphone.</string>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>Please allow App to use Photo Library Assests.</string>
 ```
 
 

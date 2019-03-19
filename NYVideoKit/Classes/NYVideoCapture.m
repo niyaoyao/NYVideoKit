@@ -7,39 +7,41 @@
 //
 
 #import "NYVideoCapture.h"
+#import "NYVideoKitDefinition.h"
 
-@interface NYVideoCapture () <AVCaptureVideoDataOutputSampleBufferDelegate>
+@interface NYVideoCapture () <AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureVideoDataOutputSampleBufferDelegate>
 
 @property (nonatomic, strong) AVCaptureSession *captureSession;
-@property (nonatomic, strong) AVCaptureDeviceInput *captureDeviceInput;
-@property (nonatomic, strong) AVCaptureVideoDataOutput *captureVideoDataOutput;
+@property (nonatomic, strong) AVCaptureDeviceInput *videoDeviceInput;
+@property (nonatomic, strong) AVCaptureDeviceInput *audioDeviceInput;
+@property (nonatomic, strong) AVCaptureVideoDataOutput *videoDataOutput;
+@property (nonatomic, strong) AVCaptureAudioDataOutput *audioDataOutput;
+@property (nonatomic, strong) AVCaptureConnection *videoCaptureConnection;
+@property (nonatomic, strong) AVCaptureConnection *audioCaptureConnection;
 @property (nonatomic, strong) AVCaptureStillImageOutput *imageOutput;
 @property (nonatomic, strong, readwrite) AVCaptureVideoPreviewLayer *captureVideoPreviewLayer;
-@property (nonatomic, strong) AVCaptureDevice *device;
+@property (nonatomic, strong) AVCaptureDevice *backCamera;
+@property (nonatomic, strong) AVCaptureDevice *microphone;
 @property (nonatomic, assign, readwrite) BOOL isLightOn;
 
 @end
 
 @implementation NYVideoCapture {
-    dispatch_queue_t _sampleQueue;
+    dispatch_queue_t _captureQueue;
 }
 
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _sampleQueue = dispatch_queue_create("io.camera.capture.sample.queue", DISPATCH_QUEUE_SERIAL);
-        dispatch_set_target_queue(_sampleQueue, dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0));
+        _captureQueue = dispatch_queue_create("nyvideokit.capture.data.output.queue", DISPATCH_QUEUE_SERIAL);
+//        dispatch_set_target_queue(_captureQueue, dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0));
     }
     return self;
 }
 
 - (void)dealloc {
-    [self.captureSession stopRunning];
-    
-#if DEBUG
-    NSLog(@"========== Camera Dealloc =========");
-#endif
-    
+    [self stop];
+    NYVideoLog(@"========== Camera Dealloc =========");
 }
 
 - (AVCaptureVideoOrientation) videoOrientationFromCurrentDeviceOrientation {
@@ -154,40 +156,40 @@
 }
 
 #pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate
+
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
-    
-#if DEBUG
-    //    NSLog(@"didOutputSampleBuffer: %@", sampleBuffer);
-#endif
+    BOOL isAudio = self.audioDataOutput == output;
+    NYVideoLog(@"isAudio: %d", isAudio);
 }
 
 - (void)captureOutput:(AVCaptureOutput *)output didDropSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
-    
-#if DEBUG
-    //    NSLog(@"didOutputSampleBuffer: %@", sampleBuffer);
-#endif
+    NYVideoLog(@"didOutputSampleBuffer");
 }
 
 #pragma mark - Public
 - (void)start {
-    [self.captureSession startRunning];
+    if (!self.captureSession.isRunning) {
+        [self.captureSession startRunning];
+    }
 }
 
 - (void)stop {
-    [self.captureSession stopRunning];
+    if (self.captureSession.isRunning) {
+        [self.captureSession stopRunning];
+    }
 }
 
 - (void)handleLight {
-    if ([self.device hasTorch]) {
+    if ([self.backCamera hasTorch]) {
         if (self.isLightOn) {
-            [self.device lockForConfiguration:nil];
-            [self.device setTorchMode: AVCaptureTorchModeOff];
-            [self.device unlockForConfiguration];
+            [self.backCamera lockForConfiguration:nil];
+            [self.backCamera setTorchMode: AVCaptureTorchModeOff];
+            [self.backCamera unlockForConfiguration];
             
         } else {
-            [self.device lockForConfiguration:nil];
-            [self.device setTorchMode: AVCaptureTorchModeOn];
-            [self.device unlockForConfiguration];
+            [self.backCamera lockForConfiguration:nil];
+            [self.backCamera setTorchMode: AVCaptureTorchModeOn];
+            [self.backCamera unlockForConfiguration];
             
         }
         self.isLightOn = !self.isLightOn;
@@ -220,11 +222,24 @@
     if (!_captureSession) {
         _captureSession = [[AVCaptureSession alloc] init];
         [_captureSession beginConfiguration];
-        if ([_captureSession canAddInput:self.captureDeviceInput]) {
-            [_captureSession addInput:self.captureDeviceInput];
+        if ([_captureSession canAddInput:self.videoDeviceInput]) {
+            [_captureSession addInput:self.videoDeviceInput];
         }
-        if ([_captureSession canAddOutput:self.captureVideoDataOutput]) {
-            [_captureSession addOutput:self.captureVideoDataOutput];
+
+        if ([_captureSession canAddOutput:self.videoDataOutput]) {
+            [_captureSession addOutput:self.videoDataOutput];
+        }
+        
+        if ([_captureSession canAddInput:self.audioDeviceInput]) {
+            [_captureSession addInput:self.audioDeviceInput];
+        } else {
+            NYVideoLog(@"Cannot add audio input");
+        }
+        
+        if ([_captureSession canAddOutput:self.audioDataOutput]) {
+            [_captureSession canAddOutput:self.audioDataOutput];
+        } else {
+            NYVideoLog(@"Cannot add audio output");
         }
         
         if ([_captureSession canAddOutput:self.imageOutput]) {
@@ -236,33 +251,74 @@
     return _captureSession;
 }
 
-- (AVCaptureDevice *)device {
-    if (!_device) {
-        _device = [NYVideoCapture getCameraDevicePosition:AVCaptureDevicePositionBack];
+- (AVCaptureDevice *)backCamera {
+    if (!_backCamera) {
+        _backCamera = [NYVideoCapture getCameraDevicePosition:AVCaptureDevicePositionBack];
     }
-    return _device;
+    return _backCamera;
 }
 
-- (AVCaptureDeviceInput *)captureDeviceInput {
-    if (!_captureDeviceInput) {
-        
+- (AVCaptureDevice *)microphone {
+    if (!_microphone) {
+        _microphone = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeAudio];
+    }
+    return _microphone;
+}
+
+- (AVCaptureDeviceInput *)videoDeviceInput {
+    if (!_videoDeviceInput) {
         NSError *error = nil;
-        _captureDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:self.device error:&error];
-        
+        _videoDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:self.backCamera error:&error];
         NSParameterAssert(error == NULL);
     }
-    return _captureDeviceInput;
+    return _videoDeviceInput;
 }
 
-- (AVCaptureVideoDataOutput *)captureVideoDataOutput {
-    if (!_captureVideoDataOutput) {
-        _captureVideoDataOutput = [[AVCaptureVideoDataOutput alloc] init];
-        [_captureVideoDataOutput setSampleBufferDelegate:self queue:_sampleQueue];
-        _captureVideoDataOutput.videoSettings = @{
-                                                  (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA)
-                                                  };
+- (AVCaptureDeviceInput *)audioDeviceInput {
+    if (!_audioDeviceInput) {
+        AVCaptureDevice *mic = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeAudio];
+        NSError *error = nil;
+        _audioDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:mic error:&error];
+        NSParameterAssert(error == nil);
+//        AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+//        [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord error:&error];
+//        NSParameterAssert(error == nil);
+//        [audioSession setActive:YES error:&error];
+//        NSParameterAssert(error == nil);
     }
-    return _captureVideoDataOutput;
+    return _audioDeviceInput;
+}
+
+- (AVCaptureVideoDataOutput *)videoDataOutput {
+    if (!_videoDataOutput) {
+        _videoDataOutput = [[AVCaptureVideoDataOutput alloc] init];
+        [_videoDataOutput setSampleBufferDelegate:self queue:_captureQueue];
+        _videoDataOutput.videoSettings = @{
+                                           (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) };
+    }
+    return _videoDataOutput;
+}
+
+- (AVCaptureAudioDataOutput *)audioDataOutput {
+    if (!_audioDataOutput) {
+        _audioDataOutput = [[AVCaptureAudioDataOutput alloc] init];
+        [_audioDataOutput setSampleBufferDelegate:self queue:_captureQueue];
+    }
+    return _audioDataOutput;
+}
+
+- (AVCaptureConnection *)videoCaptureConnection {
+    if (!_videoCaptureConnection) {
+        _videoCaptureConnection = [self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
+    }
+    return _videoCaptureConnection;
+}
+
+- (AVCaptureConnection *)audioCaptureConnection {
+    if (!_audioCaptureConnection) {
+        _audioCaptureConnection = [self.audioDataOutput connectionWithMediaType:AVMediaTypeAudio];
+    }
+    return _audioCaptureConnection;
 }
 
 - (AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer {
@@ -280,7 +336,7 @@
         _imageOutput.outputSettings = @{
                                         (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)
                                         };
-        
+
     }
     return _imageOutput;
 }
