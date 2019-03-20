@@ -14,6 +14,7 @@
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection isAudio:(BOOL)isAudio;
 
+- (void)captureOutput:(AVCaptureOutput *)output didDropSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection isAudio:(BOOL)isAudio;
 @end
 NS_ASSUME_NONNULL_BEGIN
 
@@ -24,7 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign, readonly) BOOL isLightOn;
 @property (nonatomic, weak) id<NYVideoCaptureOutputSampleBufferDelegate> outputSampleBufferDelegate;
 
-- (void)captureStillUIImage:(void (^)(UIImage *image, NSError *error))completionHandler;
+- (void)captureStillUIImage:(void (^)(UIImage * _Nullable image, NSError * _Nullable error))completionHandler;
 - (void)start;
 - (void)stop;
 - (void)handleLight;

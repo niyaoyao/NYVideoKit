@@ -44,7 +44,7 @@
     NYVideoLog(@"========== Camera Dealloc =========");
 }
 
-- (AVCaptureVideoOrientation) videoOrientationFromCurrentDeviceOrientation {
+- (AVCaptureVideoOrientation)videoOrientationFromCurrentDeviceOrientation {
     switch ([[UIApplication sharedApplication] statusBarOrientation]) {
         case UIInterfaceOrientationPortrait: {
             return AVCaptureVideoOrientationPortrait;
@@ -156,14 +156,19 @@
 }
 
 #pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate
-
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
     BOOL isAudio = self.audioDataOutput == output;
-    NYVideoLog(@"isAudio: %d", isAudio);
+    if ([self.outputSampleBufferDelegate respondsToSelector:@selector(captureOutput:didOutputSampleBuffer:fromConnection:isAudio:)]) {
+        [self.outputSampleBufferDelegate captureOutput:output didOutputSampleBuffer:sampleBuffer fromConnection:connection isAudio:isAudio];
+    }
 }
 
 - (void)captureOutput:(AVCaptureOutput *)output didDropSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
     NYVideoLog(@"didOutputSampleBuffer");
+    BOOL isAudio = self.audioDataOutput == output;
+    if ([self.outputSampleBufferDelegate respondsToSelector:@selector(captureOutput:didDropSampleBuffer:fromConnection:isAudio:)]) {
+        [self.outputSampleBufferDelegate captureOutput:output didDropSampleBuffer:sampleBuffer fromConnection:connection isAudio:isAudio];
+    }
 }
 
 #pragma mark - Public
@@ -237,7 +242,7 @@
         }
         
         if ([_captureSession canAddOutput:self.audioDataOutput]) {
-            [_captureSession canAddOutput:self.audioDataOutput];
+            [_captureSession addOutput:self.audioDataOutput];
         } else {
             NYVideoLog(@"Cannot add audio output");
         }
@@ -280,11 +285,6 @@
         NSError *error = nil;
         _audioDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:mic error:&error];
         NSParameterAssert(error == nil);
-//        AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-//        [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord error:&error];
-//        NSParameterAssert(error == nil);
-//        [audioSession setActive:YES error:&error];
-//        NSParameterAssert(error == nil);
     }
     return _audioDeviceInput;
 }
