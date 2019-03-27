@@ -13,6 +13,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface NYVideoRecorder : NSObject
 
+@property (nonatomic, strong, readonly) AVCaptureVideoPreviewLayer *videoPreviewLayer;
+
+- (void)setPreviewLayerFrame:(CGRect)frame;
+- (void)startCapture;
+- (void)stopCapture;
+
 @end
 
 NS_ASSUME_NONNULL_END

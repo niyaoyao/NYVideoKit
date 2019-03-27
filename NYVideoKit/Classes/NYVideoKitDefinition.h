@@ -10,7 +10,7 @@
 #define NYVideoKitDefinition_h
 
 #ifdef DEBUG
-#define NYVideoLog(...) NSLog(__VA_ARGS__)
+#define NYVideoLog(...) NSLog(@"%s\n\n%@\n\n==================================================\n", __PRETTY_FUNCTION__, [NSString stringWithFormat:__VA_ARGS__]);
 #else
 #define NYVideoLog(...)
 #endif
