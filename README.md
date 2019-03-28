@@ -13,11 +13,9 @@ To run the example project, clone the repo, and run `pod install` from the Examp
 
 ## Installation
 
-### Add repo
-To use NYVideoKit components, you must add this repo to your local machine.
-
 ### Pod install
-Lotus is available through [CocoaPods](http://cocoapods.org). To install
+
+NYVideoKit is available through [CocoaPods](http://cocoapods.org). To install
 it, simply add the following line to your Podfile:
 
 ```ruby
@@ -29,11 +27,11 @@ pod 'NYVideoKit'
 end
 ```
 
-### Access during Runtime
+### Access Permission during Runtime
 
 **[access] This app has crashed because it attempted to access privacy-sensitive data without a usage description.  The app's Info.plist must contain an NSCameraUsageDescription key with a string value explaining to the user how the app uses this data.**
 
-Add key-value elements below in **Info.plist** file to solve the crash.
+Add key-value elements below in **Info.plist** file to solve the crash issue.
 
 ```
 <key>NSCameraUsageDescription</key>
@@ -44,6 +42,53 @@ Add key-value elements below in **Info.plist** file to solve the crash.
 <string>Please allow App to use Photo Library Assests.</string>
 ```
 
+## Usage
+To use recorder components, you must import the NYVideoKit first.
+
+```objc
+
+#import <NYVideoRecorder.h>
+
+@interface ViewController ()
+
+@property (nonatomic, strong) NYVideoRecorder *recorder;
+
+@end
+
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [self.recorder startCapture];
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    [self.recorder stopCapture];
+}
+
+- (NYVideoRecorder *)recorder {
+    if (!_recorder) {
+        _recorder = [[NYVideoRecorder alloc] init];
+        [_recorder setPreviewLayerFrame:self.view.frame];
+    }
+    return _recorder;
+}
+
+- (void)startRecord {
+    if(self.recorder.recorderStatus != NYVideoRecorderStatusWriting) {
+        [self.recorder startRecording];
+        [self.button setTitle:@"⏸️" forState:UIControlStateNormal];
+    } else {
+        __weak typeof (self) weakSelf = self;
+        [self.recorder stopRecording:^(NSError * _Nullable error) {
+            if (error) {
+                [self showMessage:error.localizedDescription];
+            }
+            [weakSelf.button setTitle:@"⏺️" forState:UIControlStateNormal];
+        }];
+    }
+}
+```
 
 ## Author
 
