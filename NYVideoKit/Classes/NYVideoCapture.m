@@ -164,7 +164,6 @@
 }
 
 - (void)captureOutput:(AVCaptureOutput *)output didDropSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
-    NYVideoLog(@"didOutputSampleBuffer");
     BOOL isAudio = self.audioDataOutput == output;
     if ([self.outputSampleBufferDelegate respondsToSelector:@selector(captureOutput:didDropSampleBuffer:fromConnection:isAudio:)]) {
         [self.outputSampleBufferDelegate captureOutput:output didDropSampleBuffer:sampleBuffer fromConnection:connection isAudio:isAudio];
